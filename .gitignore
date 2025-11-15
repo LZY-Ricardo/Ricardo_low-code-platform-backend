@@ -15,3 +15,5 @@ venv/
 .vscode/
 coverage/
 .pytest_cache/
+
+/generated/prisma

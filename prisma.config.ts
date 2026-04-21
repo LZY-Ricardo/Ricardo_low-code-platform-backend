@@ -1,4 +1,9 @@
 import { defineConfig, env } from "prisma/config";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// 加载 .env 文件
+config({ path: resolve(__dirname, ".env") });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

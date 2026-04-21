@@ -16,6 +16,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
   
   projects  Project[]
+  templates Template[]
 
   @@map("users")
 }
@@ -32,4 +33,29 @@ model Project {
 
   @@index([userId])
   @@map("projects")
+}
+
+model Template {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  description String   @default("") @db.VarChar(500)
+  category    String   @default("general") @db.VarChar(50)
+  thumbnail   String?  @db.Text
+  components  Json
+  pages       Json     @default("[]")
+  dataSources Json     @default("{}")
+  variables   Json     @default("{}")
+  sharedStyles Json    @default("[]")
+  themeId     String?
+  builtIn     Boolean  @default(false)
+  useCount    Int      @default(0)
+  userId      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@map("templates")
 }

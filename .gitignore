@@ -17,3 +17,5 @@ coverage/
 .pytest_cache/
 
 /generated/prisma
+.runtime/
+uploads/

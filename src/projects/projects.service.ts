@@ -40,12 +40,12 @@ export class ProjectsService {
 
     const [projects, total] = await Promise.all([
       this.prisma.project.findMany({
-        where: { userId },
+        where: { userId, deletedAt: null },
         skip,
         take,
         orderBy: { [sortBy]: order },
       }),
-      this.prisma.project.count({ where: { userId } }),
+      this.prisma.project.count({ where: { userId, deletedAt: null } }),
     ]);
 
     return {
@@ -72,8 +72,17 @@ export class ProjectsService {
       throw new NotFoundException('项目不存在');
     }
 
+    if (project.deletedAt) {
+      throw new NotFoundException('项目已删除');
+    }
+
     if (project.userId !== userId) {
-      throw new ForbiddenException('无权访问该项目');
+      const collaborator = await this.prisma.projectCollaborator.findUnique({
+        where: { projectId_userId: { projectId: id, userId } },
+      });
+      if (!collaborator) {
+        throw new ForbiddenException('无权访问该项目');
+      }
     }
 
     return {
@@ -92,8 +101,17 @@ export class ProjectsService {
       throw new NotFoundException('项目不存在');
     }
 
+    if (project.deletedAt) {
+      throw new NotFoundException('项目已删除');
+    }
+
     if (project.userId !== userId) {
-      throw new ForbiddenException('无权修改该项目');
+      const collaborator = await this.prisma.projectCollaborator.findUnique({
+        where: { projectId_userId: { projectId: id, userId } },
+      });
+      if (!collaborator || collaborator.role !== 'editor') {
+        throw new ForbiddenException('无权修改该项目');
+      }
     }
 
     const updated = await this.prisma.project.update({
@@ -121,13 +139,16 @@ export class ProjectsService {
       throw new ForbiddenException('无权删除该项目');
     }
 
-    await this.prisma.project.delete({
+    await this.prisma.project.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
     });
 
     return {
       code: 0,
-      message: '删除成功',
+      message: '已移入回收站',
       data: { id },
     };
   }

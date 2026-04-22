@@ -16,6 +16,7 @@ import { UpdateTemplateDto } from './dto/update-template.dto';
 import { QueryTemplateDto } from './dto/query-template.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
+import { LogOperation } from '../common/decorators/log-operation.decorator';
 
 @Controller('api/templates')
 export class TemplatesController {
@@ -35,12 +36,21 @@ export class TemplatesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @LogOperation({
+    action: 'template.create',
+    resource: 'template',
+  })
   create(@Request() req, @Body() dto: CreateTemplateDto) {
     return this.templatesService.create(req.user.userId, dto);
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
+  @LogOperation({
+    action: 'template.update',
+    resource: 'template',
+    resourceIdBuilder: (req) => req.params?.id,
+  })
   update(
     @Request() req,
     @Param('id') id: string,
@@ -51,12 +61,22 @@ export class TemplatesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @LogOperation({
+    action: 'template.delete',
+    resource: 'template',
+    resourceIdBuilder: (req) => req.params?.id,
+  })
   remove(@Request() req, @Param('id') id: string) {
     return this.templatesService.remove(req.user.userId, id);
   }
 
   @Post(':id/use')
   @UseGuards(JwtAuthGuard)
+  @LogOperation({
+    action: 'template.use',
+    resource: 'template',
+    resourceIdBuilder: (req) => req.params?.id,
+  })
   incrementUseCount(@Param('id') id: string) {
     return this.templatesService.incrementUseCount(id);
   }

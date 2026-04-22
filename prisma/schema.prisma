@@ -8,54 +8,277 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique @db.VarChar(20)
-  email     String   @unique @db.VarChar(100)
-  password  String   @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  projects  Project[]
-  templates Template[]
+  id                     String                @id @default(uuid())
+  username               String                @unique @db.VarChar(20)
+  email                  String                @unique @db.VarChar(100)
+  password               String                @db.VarChar(100)
+  avatarUrl              String?               @map("avatar_url") @db.Text
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+  projects               Project[]             @relation("ProjectsByUser")
+  templates              Template[]            @relation("TemplatesByUser")
+  fileAssets             FileAsset[]           @relation("FileAssetsByUser")
+  publishedPages         PublishedPage[]       @relation("PublishedPagesByUser")
+  operationLogs          OperationLog[]        @relation("OperationLogsByUser")
+  formSchemas            FormSchema[]          @relation("FormSchemasByUser")
+  projectSharesCreated   ProjectShare[]        @relation("ProjectSharesCreatedByUser")
+  projectCollaborations  ProjectCollaborator[] @relation("ProjectCollaborationsByUser")
+  projectInvitationsSent ProjectCollaborator[] @relation("ProjectInvitationsSentByUser")
+  customComponents       CustomComponent[]     @relation("CustomComponentsByUser")
+  marketTemplates        MarketTemplate[]      @relation("MarketTemplatesByUser")
+  marketLikes            MarketLike[]          @relation("MarketLikesByUser")
+  marketReviews          MarketReview[]        @relation("MarketReviewsByUser")
 
   @@map("users")
 }
 
 model Project {
-  id         String   @id @default(uuid())
-  name       String   @db.VarChar(50)
-  components Json     @default("[]")
-  userId     String   @map("user_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String                @id @default(uuid())
+  name           String                @db.VarChar(50)
+  components     Json                  @default("[]")
+  userId         String                @map("user_id")
+  publishUrl     String?               @map("publish_url") @db.VarChar(255)
+  deletedAt      DateTime?             @map("deleted_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  user           User                  @relation("ProjectsByUser", fields: [userId], references: [id], onDelete: Cascade)
+  publishedPages PublishedPage[]
+  fileAssets     FileAsset[]
+  formSchemas    FormSchema[]
+  shares         ProjectShare[]
+  collaborators  ProjectCollaborator[]
 
   @@index([userId])
+  @@index([deletedAt])
   @@map("projects")
 }
 
 model Template {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(100)
-  description String   @default("") @db.VarChar(500)
-  category    String   @default("general") @db.VarChar(50)
-  thumbnail   String?  @db.Text
-  components  Json
-  pages       Json     @default("[]")
-  dataSources Json     @default("{}")
-  variables   Json     @default("{}")
-  sharedStyles Json    @default("[]")
-  themeId     String?
-  builtIn     Boolean  @default(false)
-  useCount    Int      @default(0)
-  userId      String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  description  String   @default("") @db.VarChar(500)
+  category     String   @default("general") @db.VarChar(50)
+  thumbnail    String?  @db.Text
+  components   Json
+  pages        Json     @default("[]")
+  dataSources  Json     @default("{}")
+  variables    Json     @default("{}")
+  sharedStyles Json     @default("[]")
+  themeId      String?
+  builtIn      Boolean  @default(false)
+  useCount     Int      @default(0)
+  userId       String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User?    @relation("TemplatesByUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([category])
   @@map("templates")
+}
+
+model PublishedPage {
+  id          String   @id @default(uuid())
+  version     Int      @default(1)
+  projectId   String   @map("project_id")
+  publishUrl  String   @map("publish_url") @db.VarChar(255)
+  title       String?  @db.VarChar(255)
+  description String?  @db.VarChar(500)
+  htmlContent String   @map("html_content") @db.Text
+  components  Json
+  status      String   @default("active") @db.VarChar(20)
+  publishedBy String   @map("published_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publisher   User     @relation("PublishedPagesByUser", fields: [publishedBy], references: [id])
+
+  @@index([projectId])
+  @@index([publishUrl])
+  @@map("published_pages")
+}
+
+model FileAsset {
+  id           String   @id @default(uuid())
+  fileName     String   @map("file_name") @db.VarChar(255)
+  originalName String   @map("original_name") @db.VarChar(255)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  fileSize     Int      @map("file_size")
+  url          String   @db.Text
+  userId       String   @map("user_id")
+  projectId    String?  @map("project_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation("FileAssetsByUser", fields: [userId], references: [id], onDelete: Cascade)
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("file_assets")
+}
+
+model FormSchema {
+  id          String       @id @default(uuid())
+  name        String       @db.VarChar(100)
+  description String       @default("") @db.VarChar(500)
+  fields      Json
+  projectId   String       @map("project_id")
+  pageId      String?      @map("page_id") @db.VarChar(100)
+  isActive    Boolean      @default(true) @map("is_active")
+  submissions Int          @default(0)
+  userId      String       @map("user_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  user        User         @relation("FormSchemasByUser", fields: [userId], references: [id])
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records     FormRecord[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("form_schemas")
+}
+
+model FormRecord {
+  id           String     @id @default(uuid())
+  formSchemaId String     @map("form_schema_id")
+  data         Json
+  ip           String?    @db.VarChar(45)
+  userAgent    String?    @map("user_agent") @db.VarChar(500)
+  submittedAt  DateTime   @default(now()) @map("submitted_at")
+  formSchema   FormSchema @relation(fields: [formSchemaId], references: [id], onDelete: Cascade)
+
+  @@index([formSchemaId])
+  @@index([submittedAt])
+  @@map("form_records")
+}
+
+model OperationLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String   @db.VarChar(50)
+  resource   String   @db.VarChar(50)
+  resourceId String?  @map("resource_id") @db.VarChar(100)
+  detail     Json?
+  ip         String?  @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation("OperationLogsByUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("operation_logs")
+}
+
+model ProjectShare {
+  id         String    @id @default(uuid())
+  projectId  String    @map("project_id")
+  shareToken String    @unique @map("share_token") @db.VarChar(50)
+  permission String    @default("view") @db.VarChar(20)
+  expiresAt  DateTime? @map("expires_at")
+  password   String?   @db.VarChar(100)
+  isActive   Boolean   @default(true) @map("is_active")
+  createdBy  String    @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator    User      @relation("ProjectSharesCreatedByUser", fields: [createdBy], references: [id])
+
+  @@index([projectId])
+  @@index([shareToken])
+  @@map("project_shares")
+}
+
+model ProjectCollaborator {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  role      String   @default("editor") @db.VarChar(20)
+  invitedBy String   @map("invited_by")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation("ProjectCollaborationsByUser", fields: [userId], references: [id], onDelete: Cascade)
+  inviter   User     @relation("ProjectInvitationsSentByUser", fields: [invitedBy], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_collaborators")
+}
+
+model CustomComponent {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  displayName  String   @map("display_name") @db.VarChar(100)
+  description  String   @default("") @db.VarChar(500)
+  category     String   @default("custom") @db.VarChar(50)
+  icon         String?  @db.VarChar(50)
+  thumbnail    String?  @db.Text
+  code         String   @db.Text
+  defaultProps Json     @default("{}") @map("default_props")
+  setterConfig Json     @default("[]") @map("setter_config")
+  version      String   @default("1.0.0") @db.VarChar(20)
+  downloads    Int      @default(0)
+  isPublic     Boolean  @default(false) @map("is_public")
+  status       String   @default("active") @db.VarChar(20)
+  userId       String   @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation("CustomComponentsByUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+  @@map("custom_components")
+}
+
+model MarketTemplate {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  description  String   @default("") @db.VarChar(500)
+  category     String   @default("general") @db.VarChar(50)
+  tags         Json     @default("[]")
+  thumbnail    String?  @db.Text
+  components   Json
+  pages        Json     @default("[]")
+  dataSources  Json     @default("{}")
+  variables    Json     @default("{}")
+  sharedStyles Json     @default("[]")
+  themeId      String?  @map("theme_id") @db.VarChar(50)
+  useCount     Int      @default(0) @map("use_count")
+  isPublic     Boolean  @default(false) @map("is_public")
+  status       String   @default("active") @db.VarChar(20)
+  userId       String   @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation("MarketTemplatesByUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
+  @@index([isPublic])
+  @@map("market_templates")
+}
+
+model MarketLike {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  targetType String   @map("target_type") @db.VarChar(20)
+  targetId   String   @map("target_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation("MarketLikesByUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId], map: "unique_market_like")
+  @@index([targetType, targetId], map: "idx_market_likes_target")
+  @@map("market_likes")
+}
+
+model MarketReview {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  targetType String   @map("target_type") @db.VarChar(20)
+  targetId   String   @map("target_id")
+  rating     Int      @db.SmallInt
+  content    String   @db.VarChar(1000)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation("MarketReviewsByUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId], map: "idx_market_reviews_target")
+  @@index([userId], map: "idx_market_reviews_user")
+  @@map("market_reviews")
 }

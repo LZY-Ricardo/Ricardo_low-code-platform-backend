@@ -125,7 +125,7 @@ export class TemplatesService {
         thumbnail: dto.thumbnail,
         components: dto.components,
         pages: dto.pages || [],
-        dataSources: dto.dataSources || {},
+        dataSources: dto.dataSources || [],
         variables: dto.variables || {},
         sharedStyles: dto.sharedStyles || [],
         themeId: dto.themeId || null,

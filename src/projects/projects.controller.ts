@@ -15,6 +15,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { BatchImportDto } from './dto/batch-import.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { LogOperation } from '../common/decorators/log-operation.decorator';
 
 @Controller('api/projects')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +23,11 @@ export class ProjectsController {
   constructor(private projectsService: ProjectsService) {}
 
   @Post()
+  @LogOperation({
+    action: 'project.create',
+    resource: 'project',
+    resourceIdBuilder: (_req) => null,
+  })
   create(@Request() req, @Body() createProjectDto: CreateProjectDto) {
     return this.projectsService.create(req.user.userId, createProjectDto);
   }
@@ -49,6 +55,11 @@ export class ProjectsController {
   }
 
   @Put(':id')
+  @LogOperation({
+    action: 'project.update',
+    resource: 'project',
+    resourceIdBuilder: (req) => req.params?.id,
+  })
   update(
     @Request() req,
     @Param('id') id: string,
@@ -58,11 +69,20 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @LogOperation({
+    action: 'project.delete',
+    resource: 'project',
+    resourceIdBuilder: (req) => req.params?.id,
+  })
   remove(@Request() req, @Param('id') id: string) {
     return this.projectsService.remove(req.user.userId, id);
   }
 
   @Post('batch-import')
+  @LogOperation({
+    action: 'project.create',
+    resource: 'project',
+  })
   batchImport(@Request() req, @Body() batchImportDto: BatchImportDto) {
     return this.projectsService.batchImport(req.user.userId, batchImportDto);
   }
